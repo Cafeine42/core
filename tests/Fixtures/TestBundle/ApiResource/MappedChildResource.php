@@ -15,18 +15,16 @@ namespace ApiPlatform\Tests\Fixtures\TestBundle\ApiResource;
 
 use ApiPlatform\Doctrine\Orm\State\Options;
 use ApiPlatform\JsonLd\ContextBuilder;
-use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Tests\Fixtures\TestBundle\Entity\MappedChildEntity;
-use ApiPlatform\Tests\Fixtures\TestBundle\Entity\MappedEntity;
 use Symfony\Component\ObjectMapper\Attribute\Map;
 
 #[ApiResource(
-    stateOptions: new Options(entityClass: MappedEntity::class),
+    stateOptions: new Options(entityClass: MappedChildEntity::class),
     normalizationContext: [ContextBuilder::HYDRA_CONTEXT_HAS_PREFIX => false],
 )]
-#[Map(target: MappedEntity::class)]
-final class MappedResource
+#[Map(target: MappedChildEntity::class)]
+final class MappedChildResource
 {
     #[Map(if: false)]
     public ?string $id = null;
@@ -34,9 +32,6 @@ final class MappedResource
     #[Map(target: 'firstName', transform: [self::class, 'toFirstName'])]
     #[Map(target: 'lastName', transform: [self::class, 'toLastName'])]
     public string $username;
-
-    #[ApiProperty(readableLink: false, writableLink: false)] // Ignored ?
-    public MappedChildResource $child;
 
     public static function toFirstName(string $v): string
     {

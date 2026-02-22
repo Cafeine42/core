@@ -13,17 +13,17 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Tests\Fixtures\TestBundle\Entity;
 
-use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Tests\Fixtures\TestBundle\ApiResource\MappedChildResource;
 use ApiPlatform\Tests\Fixtures\TestBundle\ApiResource\MappedResource;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\ObjectMapper\Attribute\Map;
 
 /**
- * MappedEntity to MappedResource.
+ * MappedChildEntity to MappedChildResource.
  */
 #[ORM\Entity]
-#[Map(target: MappedResource::class)]
-class MappedEntity
+#[Map(target: MappedChildResource::class)]
+class MappedChildEntity
 {
     #[ORM\Column(type: 'integer')]
     #[ORM\Id]
@@ -37,9 +37,6 @@ class MappedEntity
     #[Map(target: 'username', transform: [self::class, 'toUsername'])]
     #[ORM\Column]
     private string $lastName;
-
-    #[ORM\ManyToOne(targetEntity: MappedChildEntity::class, cascade: ['persist'])]
-    public MappedChildEntity $child;
 
     public static function toUsername($value, $object): string
     {
@@ -69,15 +66,5 @@ class MappedEntity
     public function getFirstName(): string
     {
         return $this->firstName;
-    }
-
-    public function setChild(MappedChildEntity $child): void
-    {
-        $this->child = $child;
-    }
-
-    public function getChild(): MappedChildEntity
-    {
-        return $this->child;
     }
 }

@@ -28,6 +28,7 @@ use ApiPlatform\Tests\Fixtures\TestBundle\ApiResource\SecondResource;
 use ApiPlatform\Tests\Fixtures\TestBundle\Document\MappedDocument;
 use ApiPlatform\Tests\Fixtures\TestBundle\Entity\Book;
 use ApiPlatform\Tests\Fixtures\TestBundle\Entity\BookStore;
+use ApiPlatform\Tests\Fixtures\TestBundle\Entity\MappedChildEntity;
 use ApiPlatform\Tests\Fixtures\TestBundle\Entity\MappedEntity;
 use ApiPlatform\Tests\Fixtures\TestBundle\Entity\MappedEntityNoMap;
 use ApiPlatform\Tests\Fixtures\TestBundle\Entity\MappedEntitySourceOnly;
@@ -70,20 +71,41 @@ final class MappingTest extends ApiTestCase
             $this->markTestSkipped('ObjectMapper not installed');
         }
 
-        $this->recreateSchema([MappedEntity::class]);
+        $this->recreateSchema([MappedEntity::class, MappedChildEntity::class]);
         $this->loadFixtures();
         $client = self::createClient();
         $client->request('GET', $this->isMongoDB() ? 'mapped_resource_odms' : 'mapped_resources');
         $this->assertArrayHasKey('mapped_data', $client->getKernelBrowser()->getRequest()->attributes->all());
         $this->assertJsonContains(['member' => [
-            ['username' => 'B0 A0'],
+            [
+                'username' => 'B0 A0',
+                'child' =>  [ // Should be an IRI ?
+                    '@type' => 'MappedChildResource',
+                    'id' => '1',
+                    'username' => 'Junior B0 Junior A0',
+                ]
+            ],
             ['username' => 'B1 A1'],
             ['username' => 'B2 A2'],
         ]]);
 
         $client = self::createClient();
-        $r = $client->request('POST', $this->isMongoDB() ? 'mapped_resource_odms' : 'mapped_resources', ['json' => ['username' => 'so yuka']]);
-        $this->assertJsonContains(['username' => 'so yuka']);
+        $r = $client->request('POST', $this->isMongoDB() ? 'mapped_resource_odms' : 'mapped_resources', ['json' => [
+            'username' => 'so yuka',
+            // Case 1
+            'child' => ['username' => 'so yuka child'],
+            // Case 2
+            // 'child' => 'mapped_child_resources/2',
+            // => 'hydra:description' => 'The property "ApiPlatform\\Tests\\Fixtures\\TestBundle\\ApiResource\\MappedChildResource::$username" is not readable because it is typed "string". You should initialize it or declare a default value instead.',
+        ]]);
+        $this->assertJsonContains([
+            'username' => 'so yuka',
+            'child' =>  [
+                '@type' => 'MappedChildResource',
+                'id' => '11',
+                'username' => 'so yuka', // Not so yuka child ?
+            ]
+        ]);
         $this->assertArrayHasKey('persisted_data', $client->getKernelBrowser()->getRequest()->attributes->all());
 
         $manager = $this->getManager();
@@ -278,9 +300,15 @@ final class MappingTest extends ApiTestCase
         $manager = $this->getManager();
 
         for ($i = 0; $i < 10; ++$i) {
+            $child =  $manager instanceof DocumentManager ? new MappedChildEntity()/*Replace Me*/ : new MappedChildEntity();
+            $child->setLastName('Junior A'.$i);
+            $child->setFirstName('Junior B'.$i);
+            $manager->persist($child);
+
             $e = $manager instanceof DocumentManager ? new MappedDocument() : new MappedEntity();
             $e->setLastName('A'.$i);
             $e->setFirstName('B'.$i);
+            $e->setChild($child);
             $manager->persist($e);
         }
 
